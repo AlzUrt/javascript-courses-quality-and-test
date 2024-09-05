@@ -83,9 +83,8 @@ class Game {
     }
 
     getScore() {
-        if (this.endTime) {
-            const elapsedSeconds = Math.floor((this.endTime - this.startTime) / 1000);
-            return Math.max(0, this.score - elapsedSeconds);
+        if (this.isGameOver()) {
+            return this.score;
         } else {
             const elapsedSeconds = Math.floor((Date.now() - this.startTime) / 1000);
             return Math.max(0, this.score - elapsedSeconds);
@@ -93,7 +92,14 @@ class Game {
     }
 
     isGameOver() {
-        return this.numberOfTry === 0 || this.unknowWord === this.word;
+        if (this.numberOfTry === 0 || this.unknowWord === this.word) {
+            if (this.endTime === null) {
+                this.endTime = Date.now();
+                this.score = this.getScore();
+            }
+            return true;
+        }
+        return false;
     }
 
     isGameWon() {

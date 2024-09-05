@@ -1,5 +1,22 @@
 const Game = require('../game.js');
 const db = require('../db');
+const fs = require('fs');
+
+
+jest.mock('fs', () => ({
+    createReadStream: jest.fn(() => ({
+        pipe: jest.fn().mockReturnThis(),
+        on: jest.fn().mockImplementation(function(event, handler) {
+            if (event === 'data') {
+                handler({ word: 'test' });
+            } else if (event === 'end') {
+                handler();
+            }
+            return this;
+        })
+    }))
+}));
+
 
 
 jest.mock('../db', () => ({
@@ -229,6 +246,86 @@ describe("Game test", () => {
             game.guess('x'); // This should end the game
             game.guess('y'); // This should not be added
             expect(game.getGuessedLetters()).toBe('x');
+        });
+    });
+
+    describe("Word loading and selection", () => {
+        test("loadWords should load words from file", async () => {
+            await game.loadWords();
+            expect(game.listOfWords).toContain('test');
+            expect(fs.createReadStream).toHaveBeenCalledWith('words_fr.txt');
+        });
+
+        test("chooseWord should select a word from the list", () => {
+            game.chooseWord();
+            expect(game.word).toBeDefined();
+            expect(game.unknowWord).toMatch(/^#+$/);
+        });
+
+        test("setWordList should set the list of words", () => {
+            game.setWordList(['apple', 'banana', 'cherry']);
+            expect(game.listOfWords).toEqual(['apple', 'banana', 'cherry']);
+        });
+    });
+
+    describe("Game mechanics", () => {
+        test("guess should return true for correct guess", () => {
+            expect(game.guess('d')).toBe(true);
+        });
+
+        test("guess should return false for incorrect guess", () => {
+            expect(game.guess('z')).toBe(false);
+        });
+
+        test("guess should be case insensitive", () => {
+            expect(game.guess('D')).toBe(true);
+        });
+
+        test("guess should not affect game state after game is over", () => {
+            game.numberOfTry = 0;
+            const initialUnknownWord = game.unknowWord;
+            game.guess('d');
+            expect(game.unknowWord).toBe(initialUnknownWord);
+        });
+    });
+
+    describe("Score and time tests", () => {
+        test("score should decrease over long periods of time", () => {
+            const initialScore = game.getScore();
+            jest.advanceTimersByTime(1001000); // Advance by more than 1000 seconds
+            expect(game.getScore()).toBe(0);
+        });
+
+        test("endTime should be set when game is over", () => {
+            game.numberOfTry = 1;
+            game.guess('z');
+            expect(game.endTime).not.toBeNull();
+        });
+
+        test("score should not change after game is over", () => {
+            game.numberOfTry = 1;
+            const initialScore = game.getScore();
+            game.guess('z'); 
+            const scoreAtEnd = game.getScore();
+            expect(scoreAtEnd).toBeLessThan(initialScore); 
+    
+            jest.advanceTimersByTime(5000);
+            expect(game.getScore()).toBe(scoreAtEnd); 
+        });
+    });
+
+    describe("Error handling", () => {
+        test("loadWords should reject on file read error", async () => {
+            fs.createReadStream.mockImplementationOnce(() => ({
+                pipe: jest.fn().mockReturnThis(),
+                on: jest.fn().mockImplementation(function(event, handler) {
+                    if (event === 'error') {
+                        handler(new Error('File read error'));
+                    }
+                    return this;
+                })
+            }));
+            await expect(game.loadWords()).rejects.toThrow('File read error');
         });
     });
 
