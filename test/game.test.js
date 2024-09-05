@@ -178,6 +178,61 @@ describe("Game test", () => {
         });
     });
 
+    describe("Guessed letters tests", () => {
+        test("guessedLetters should be empty initially", () => {
+            expect(game.getGuessedLetters()).toBe('');
+        });
+
+        test("guess should add letter to guessedLetters", () => {
+            game.guess('a');
+            expect(game.getGuessedLetters()).toBe('a');
+        });
+
+        test("getGuessedLetters should return sorted, comma-separated list of guessed letters", () => {
+            game.guess('a');
+            game.guess('c');
+            game.guess('b');
+            expect(game.getGuessedLetters()).toBe('a, b, c');
+        });
+
+        test("guessing the same letter multiple times should not duplicate it in guessedLetters", () => {
+            game.guess('a');
+            game.guess('a');
+            game.guess('b');
+            game.guess('a');
+            expect(game.getGuessedLetters()).toBe('a, b');
+        });
+
+        test("guessed letters should be case-insensitive", () => {
+            game.guess('A');
+            game.guess('a');
+            game.guess('B');
+            game.guess('b');
+            expect(game.getGuessedLetters()).toBe('a, b');
+        });
+
+        test("reset should clear guessedLetters", () => {
+            game.guess('a');
+            game.guess('b');
+            game.reset();
+            expect(game.getGuessedLetters()).toBe('');
+        });
+
+        test("guessing should work for both correct and incorrect letters", () => {
+            game.guess('d'); // correct
+            game.guess('x'); // incorrect
+            expect(game.getGuessedLetters()).toBe('d, x');
+        });
+
+        test("guessing should not add letters after game is over", () => {
+            game.numberOfTry = 1;
+            game.guess('x'); // This should end the game
+            game.guess('y'); // This should not be added
+            expect(game.getGuessedLetters()).toBe('x');
+        });
+    });
+
+
     test("should throw an error if no words are available", () => {
         game.listOfWords = [];
         expect(() => game.chooseWord()).toThrow("No words available to choose from.");

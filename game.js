@@ -13,8 +13,7 @@ class Game {
         this.endTime = null;
         this.pseudo = '';
         this.isScoreSubmitted = false;
-        this.word = '';
-        this.unknowWord = '';
+        this.guessedLetters = new Set();
     }
 
     loadWords() {
@@ -51,9 +50,8 @@ class Game {
             return false;
         }
 
-        if (!this.word) {
-            throw new Error("The word has not been set. Please ensure that the game has been initialized properly.");
-        }
+        oneLetter = oneLetter.toLowerCase();
+        this.guessedLetters.add(oneLetter);
 
         let found = false;
         for (let i = 0; i < this.word.length; i++) {
@@ -113,6 +111,10 @@ class Game {
         this.pseudo = pseudo;
     }
 
+    getGuessedLetters() {
+        return Array.from(this.guessedLetters).sort().join(', ');
+    }
+    
     reset() {
         this.numberOfTry = 5;
         this.chooseWord();
@@ -121,6 +123,7 @@ class Game {
         this.endTime = null;
         this.pseudo = '';
         this.isScoreSubmitted = false;
+        this.guessedLetters.clear();
         return this.numberOfTry;
     }
 

@@ -21,7 +21,7 @@
                 <legend class="uk-legend">Nombre d'essai restant : <%= numberOfTries %></legend>
 
                 <div class="uk-margin">
-                    <input class="uk-input" type="text" name="word" placeholder="Tapez une lettre">
+                    <input class="uk-input" type="text" name="word" placeholder="Tapez une lettre" maxlength="1">
                 </div>
 
                 <div class="uk-margin">
@@ -31,6 +31,10 @@
 
             </fieldset>
         </form>
+        
+        <% if (guessedLetters) { %>
+            <p>Lettres essayées : <%= guessedLetters %></p>
+        <% } %>
     <% } else if (isGameWon && !isScoreSubmitted) { %>
         <p>Félicitations ! Vous avez gagné. Entrez votre pseudo pour enregistrer votre score.</p>
         <form action="/" method="post">
@@ -50,7 +54,7 @@
     <% } %>
 
     <% if (game) { %>
-       <h3>Votre mot : <%= game %></h3>
+        <h3>Votre mot : <%= game %></h3>
     <% } %>
 
     <% if (isGameOver) { %>

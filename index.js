@@ -27,6 +27,7 @@ app.get('/', async (request, response) => {
         isGameOver: game.isGameOver(),
         isGameWon: game.isGameWon(),
         isScoreSubmitted: game.isScoreSubmitted,
+        guessedLetters: game.getGuessedLetters(),
         topScores: topScores
     });
 });
@@ -55,6 +56,7 @@ app.post('/', async (request, response) => {
             isGameOver: game.isGameOver(),
             isGameWon: game.isGameWon(),
             isScoreSubmitted: game.isScoreSubmitted,
+            guessedLetters: game.getGuessedLetters(),
             topScores: topScores
         });
     } catch (error) {
