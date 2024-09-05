@@ -39,12 +39,18 @@ class Game {
             throw new Error("The word has not been set. Please ensure that the game has been initialized properly.");
         }
 
-        if (this.word.includes(oneLetter)) {
-            this.unknowWord = tools.replaceAt(this.unknowWord, this.word.indexOf(oneLetter), oneLetter);
-            return true;
+        let found = false;
+        for (let i = 0; i < this.word.length; i++) {
+            if (this.word[i] === oneLetter) {
+                this.unknowWord = tools.replaceAt(this.unknowWord, i, oneLetter);
+                found = true;
+            }
         }
-        this.numberOfTry--;
-        return false;
+
+        if (!found) {
+            this.numberOfTry--;
+        }
+        return found;
     }
 
 

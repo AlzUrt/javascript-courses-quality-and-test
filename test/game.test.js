@@ -50,5 +50,10 @@ describe("Game test", () => {
         expect(() => game.chooseWord()).toThrow("No words available to choose from.");
     });
 
-
+    test("should show all occurrences of a letter", () => {
+        game.word = "carafe";
+        game.unknowWord = "######";
+        game.guess("a");
+        expect(game.print()).toBe("#a#a##");
+    });
 });
