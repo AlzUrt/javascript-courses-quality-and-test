@@ -45,10 +45,6 @@ describe("Game test", () => {
         expect(game.print()).toBe("#a####");
     });
 
-    test("should throw an error if no words are available", () => {
-        game.listOfWords = [];
-        expect(() => game.chooseWord()).toThrow("No words available to choose from.");
-    });
 
     test("should show all occurrences of a letter", () => {
         game.word = "carafe";
@@ -56,4 +52,41 @@ describe("Game test", () => {
         game.guess("a");
         expect(game.print()).toBe("#a#a##");
     });
+
+    describe("Score test", () => {
+        test("should have a score of 1000 at the beginning", () => {
+            expect(game.getScore()).toBe(1000);
+        });
+
+        test("score should decrease over time", async () => {
+            const initialScore = game.getScore();
+            await new Promise(resolve => setTimeout(resolve, 2000)); 
+            const newScore = game.getScore();
+            expect(newScore).toBeLessThan(initialScore);
+            expect(newScore).toBeGreaterThanOrEqual(initialScore - 3); 
+        });
+    
+        test("reset should set score back to 1000", () => {
+            game.reset();
+            expect(game.getScore()).toBe(1000);
+        });
+
+        test("score should decrease by 50 points for incorrect guess", () => {
+            const initialScore = game.getScore();
+            game.guess('z');
+            expect(game.getScore()).toBe(initialScore - 50);
+        });
+
+        test("score should not decrease below 0", () => {
+            game.score = 30;
+            game.guess('z');
+            expect(game.getScore()).toBe(0);
+        });
+    });
+
+    test("should throw an error if no words are available", () => {
+        game.listOfWords = [];
+        expect(() => game.chooseWord()).toThrow("No words available to choose from.");
+    });
+
 });

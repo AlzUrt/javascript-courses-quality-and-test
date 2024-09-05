@@ -19,7 +19,8 @@ app.get('/', (request, response) => {
     response.render('pages/index', {
         game: game.print(),
         word: game.word,
-        numberOfTries: game.getNumberOfTries()
+        numberOfTries: game.getNumberOfTries(),
+        score: game.getScore()
     });
 });
 
@@ -38,12 +39,18 @@ app.post('/', (request, response) => {
         response.render('pages/index', {
             game: game.print(),
             word: game.word,
-            numberOfTries: game.getNumberOfTries()
+            numberOfTries: game.getNumberOfTries(),
+            score: game.getScore()
         });
     } catch (error) {
         console.error(error.message);
         response.status(500).send("An error occurred: " + error.message);
     }
+});
+
+// Add a new route to get the current score
+app.get('/score', (request, response) => {
+    response.json({ score: game.getScore() });
 });
 
 

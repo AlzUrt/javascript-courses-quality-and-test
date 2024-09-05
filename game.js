@@ -3,10 +3,11 @@ const csv = require('csv-parser');
 const fs = require('fs');
 
 class Game {
-
     constructor() {
         this.listOfWords = [];
         this.numberOfTry = 5;
+        this.score = 1000;
+        this.startTime = Date.now();
     }
 
     loadWords() {
@@ -49,6 +50,7 @@ class Game {
 
         if (!found) {
             this.numberOfTry--;
+            this.score = Math.max(0, this.score - 50);
         }
         return found;
     }
@@ -65,8 +67,15 @@ class Game {
     reset() {
         this.numberOfTry = 5;
         this.chooseWord();
+        this.score = 1000;
+        this.startTime = Date.now();
         return this.numberOfTry;
-    };
+    }
+
+    getScore() {
+        const elapsedSeconds = Math.floor((Date.now() - this.startTime) / 1000);
+        return Math.max(0, this.score - elapsedSeconds);
+    }
 
 }
 
