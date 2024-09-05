@@ -35,6 +35,15 @@ describe("Game test", () => {
         game.word = "damien";
         game.unknowWord = "######";
     });
+    
+    test("number of tries shouldn't decrease under 0", () => {
+        game.word = "carafe";
+        game.unknowWord = "######";
+        for (let i = 0; i < 10; i++) {
+            game.guess("z");
+        }
+        expect(game.getNumberOfTries()).toBe(0);
+    });
 
     test("should show only 'a' letter", () => {
         game.word = "damien";
@@ -54,7 +63,8 @@ describe("Game test", () => {
     });
 
     describe("Score test", () => {
-        test("should have a score of 1000 at the beginning", () => {
+        test("reset should set score back to 1000", () => {
+            game.reset();
             expect(game.getScore()).toBe(1000);
         });
 
@@ -64,11 +74,6 @@ describe("Game test", () => {
             const newScore = game.getScore();
             expect(newScore).toBeLessThan(initialScore);
             expect(newScore).toBeGreaterThanOrEqual(initialScore - 3); 
-        });
-    
-        test("reset should set score back to 1000", () => {
-            game.reset();
-            expect(game.getScore()).toBe(1000);
         });
 
         test("score should decrease by 50 points for incorrect guess", () => {

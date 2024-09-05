@@ -49,7 +49,7 @@ class Game {
         }
 
         if (!found) {
-            this.numberOfTry--;
+            this.numberOfTry = Math.max(0, this.numberOfTry - 1);
             this.score = Math.max(0, this.score - 50);
         }
         return found;
@@ -75,6 +75,10 @@ class Game {
     getScore() {
         const elapsedSeconds = Math.floor((Date.now() - this.startTime) / 1000);
         return Math.max(0, this.score - elapsedSeconds);
+    }
+
+    isGameOver() {
+        return this.numberOfTry === 0 || this.unknowWord === this.word;
     }
 
 }

@@ -20,7 +20,8 @@ app.get('/', (request, response) => {
         game: game.print(),
         word: game.word,
         numberOfTries: game.getNumberOfTries(),
-        score: game.getScore()
+        score: game.getScore(),
+        isGameOver: game.isGameOver()
     });
 });
 
@@ -29,18 +30,19 @@ app.post('/', (request, response) => {
         if (request.body.reset) {
             console.log("Reset !");
             game.reset();
-        } else if (request.body.word) {
+        } else if (request.body.word && !game.isGameOver()) {
             let guess = game.guess(request.body.word);
             console.log("Guess :" + guess);
         } else {
-            console.log("No word provided in the request body.");
+            console.log("No word provided in the request body or game is over.");
         }
 
         response.render('pages/index', {
             game: game.print(),
             word: game.word,
             numberOfTries: game.getNumberOfTries(),
-            score: game.getScore()
+            score: game.getScore(),
+            isGameOver: game.isGameOver()
         });
     } catch (error) {
         console.error(error.message);
