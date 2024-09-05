@@ -2,6 +2,7 @@ require('dotenv').config();
 const express = require('express');
 const path = require('path');
 const Game = require('./game.js');
+const db = require('./db.js');
 
 const PORT = process.env.PORT || 3030;
 
@@ -15,17 +16,22 @@ app.use(express.static(path.join(__dirname, 'public')));
 app.set('view engine', 'ejs');
 
 // Routes
-app.get('/', (request, response) => {
+app.get('/', async (request, response) => {
+    console.log("word : " + game.word);
+    const topScores = await db.getTopScores();
     response.render('pages/index', {
         game: game.print(),
         word: game.word,
         numberOfTries: game.getNumberOfTries(),
         score: game.getScore(),
-        isGameOver: game.isGameOver()
+        isGameOver: game.isGameOver(),
+        isGameWon: game.isGameWon(),
+        isScoreSubmitted: game.isScoreSubmitted,
+        topScores: topScores
     });
 });
 
-app.post('/', (request, response) => {
+app.post('/', async (request, response) => {
     try {
         if (request.body.reset) {
             console.log("Reset !");
@@ -33,16 +39,23 @@ app.post('/', (request, response) => {
         } else if (request.body.word && !game.isGameOver()) {
             let guess = game.guess(request.body.word);
             console.log("Guess :" + guess);
+        } else if (request.body.pseudo && game.isGameWon() && !game.isScoreSubmitted) {
+            game.setPseudo(request.body.pseudo);
+            await game.saveScore();
         } else {
-            console.log("No word provided in the request body or game is over.");
+            console.log("No valid action in the request body or game is over.");
         }
 
+        const topScores = await db.getTopScores();
         response.render('pages/index', {
             game: game.print(),
             word: game.word,
             numberOfTries: game.getNumberOfTries(),
             score: game.getScore(),
-            isGameOver: game.isGameOver()
+            isGameOver: game.isGameOver(),
+            isGameWon: game.isGameWon(),
+            isScoreSubmitted: game.isScoreSubmitted,
+            topScores: topScores
         });
     } catch (error) {
         console.error(error.message);
@@ -50,7 +63,7 @@ app.post('/', (request, response) => {
     }
 });
 
-// Add a new route to get the current score
+// Nouvelle route pour obtenir le score actuel
 app.get('/score', (request, response) => {
     response.json({ score: game.getScore() });
 });

@@ -5,7 +5,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
 </head>
 
-<body class="container">
+<body class="container" data-game-over="<%= isGameOver %>">
 
 <main>
 
@@ -31,6 +31,17 @@
 
             </fieldset>
         </form>
+    <% } else if (isGameWon && !isScoreSubmitted) { %>
+        <p>Félicitations ! Vous avez gagné. Entrez votre pseudo pour enregistrer votre score.</p>
+        <form action="/" method="post">
+            <input class="uk-input" type="text" name="pseudo" placeholder="Entrez votre pseudo" required>
+            <button class="uk-button uk-button-primary" type="submit">Enregistrer le score</button>
+        </form>
+    <% } else if (isGameWon && isScoreSubmitted) { %>
+        <p>Votre score a été enregistré. Merci d'avoir joué !</p>
+        <form action="/" method="post">
+            <button class="uk-input uk-button-danger uk-form-width-medium" type="submit" name="reset" value="true">Nouvelle partie</button>
+        </form>
     <% } else { %>
         <p>Le jeu est terminé. Appuyez sur Reset pour recommencer.</p>
         <form action="/" method="post">
@@ -46,17 +57,35 @@
         <h3>Le mot était : <%= word %></h3>
     <% } %>
 
+    <h3>Meilleurs scores :</h3>
+    <ul>
+        <% topScores.forEach(score => { %>
+            <li><%= score.pseudo %> : <%= score.score %> (mot : <%= score.word %>)</li>
+        <% }); %>
+    </ul>
+
 </main>
 
 <script>
-    function updateScore() {
-        $.get('/score', function(data) {
-            $('#score').text(data.score);
-        });
-    }
+    (function() {
+        var isGameOver = document.body.dataset.gameOver === 'true';
 
-    // Update score every second
-    setInterval(updateScore, 1000);
+        function updateScore() {
+            if (!isGameOver) {
+                $.get('/score', function(data) {
+                    $('#score').text(data.score);
+                });
+            }
+        }
+
+        // Update score every second
+        var scoreInterval = setInterval(updateScore, 1000);
+
+        // Stop updating score if game is over
+        if (isGameOver) {
+            clearInterval(scoreInterval);
+        }
+    })();
 </script>
 
 </body>

@@ -1,12 +1,25 @@
 const Game = require('../game.js');
+const db = require('../db');
+
+
+jest.mock('../db', () => ({
+    saveScore: jest.fn().mockResolvedValue(true),
+    getTopScores: jest.fn().mockResolvedValue([])
+}));
 
 let game;
 
-beforeAll(async () => {
+beforeEach(() => {
+    jest.useFakeTimers();
     game = new Game();
-    await game.loadWords();
+    game.setWordList(['damien', 'test', 'word']);
     game.word = "damien"; // Setting a known word for tests
     game.unknowWord = "######";
+});
+
+afterEach(() => {
+    jest.useRealTimers();
+    jest.clearAllMocks();
 });
 
 describe("Game test", () => {
@@ -25,17 +38,15 @@ describe("Game test", () => {
     });
 
     test("test the try mechanic with an incorrect guess", () => {
-        game.guess("kdjhgkfjhgdfkjhg");
+        game.guess("b");
         expect(game.getNumberOfTries()).toBe(4);
     });
 
     test("reset the game, so the number of tries should be 5", () => {
         game.reset();
         expect(game.getNumberOfTries()).toBe(5);
-        game.word = "damien";
-        game.unknowWord = "######";
     });
-    
+
     test("number of tries shouldn't decrease under 0", () => {
         game.word = "carafe";
         game.unknowWord = "######";
@@ -68,9 +79,11 @@ describe("Game test", () => {
             expect(game.getScore()).toBe(1000);
         });
 
-        test("score should decrease over time", async () => {
+        test("score should decrease over time", () => {
             const initialScore = game.getScore();
-            await new Promise(resolve => setTimeout(resolve, 2000)); 
+            
+            jest.advanceTimersByTime(2000);
+            
             const newScore = game.getScore();
             expect(newScore).toBeLessThan(initialScore);
             expect(newScore).toBeGreaterThanOrEqual(initialScore - 3); 
@@ -86,6 +99,82 @@ describe("Game test", () => {
             game.score = 30;
             game.guess('z');
             expect(game.getScore()).toBe(0);
+        });
+    });
+
+    describe("Score submission tests", () => {
+        test("isScoreSubmitted should be false initially", () => {
+            expect(game.isScoreSubmitted).toBe(false);
+        });
+
+        test("saveScore should set isScoreSubmitted to true", async () => {
+            game.setPseudo("TestUser");
+            game.unknowWord = "damien"; // Simulate winning the game
+            await game.saveScore();
+            expect(game.isScoreSubmitted).toBe(true);
+            expect(db.saveScore).toHaveBeenCalledWith("TestUser", expect.any(Number), "damien");
+        });
+
+        test("saveScore should not save score if game is not won", async () => {
+            game.setPseudo("TestUser");
+            await game.saveScore();
+            expect(game.isScoreSubmitted).toBe(false);
+            expect(db.saveScore).not.toHaveBeenCalled();
+        });
+
+        test("saveScore should not save score if already submitted", async () => {
+            game.setPseudo("TestUser");
+            game.unknowWord = "damien"; // Simulate winning the game
+            await game.saveScore();
+            expect(game.isScoreSubmitted).toBe(true);
+            
+            // Try to save score again
+            await game.saveScore();
+            expect(db.saveScore).toHaveBeenCalledTimes(1); // Should only be called once
+        });
+    });
+
+    describe("Game state tests", () => {
+        test("isGameOver should return true when word is guessed", () => {
+            game.unknowWord = "damien";
+            expect(game.isGameOver()).toBe(true);
+        });
+
+        test("isGameOver should return true when no tries left", () => {
+            game.numberOfTry = 0;
+            expect(game.isGameOver()).toBe(true);
+        });
+
+        test("isGameOver should return false when game is ongoing", () => {
+            game.numberOfTry = 3;
+            game.unknowWord = "da####";
+            expect(game.isGameOver()).toBe(false);
+        });
+
+        test("isGameWon should return true when word is guessed", () => {
+            game.unknowWord = "damien";
+            expect(game.isGameWon()).toBe(true);
+        });
+
+        test("isGameWon should return false when word is not guessed", () => {
+            game.unknowWord = "da####";
+            expect(game.isGameWon()).toBe(false);
+        });
+    });
+
+    describe("Reset tests", () => {
+        test("reset should set all game properties to initial values", () => {
+            game.numberOfTry = 0;
+            game.score = 500;
+            game.pseudo = "TestUser";
+            game.isScoreSubmitted = true;
+
+            game.reset();
+
+            expect(game.numberOfTry).toBe(5);
+            expect(game.score).toBe(1000);
+            expect(game.pseudo).toBe('');
+            expect(game.isScoreSubmitted).toBe(false);
         });
     });
 

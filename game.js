@@ -1,13 +1,20 @@
 const tools = require('./tools.js');
 const csv = require('csv-parser');
 const fs = require('fs');
+const db = require('./db.js');
 
 class Game {
     constructor() {
+        //insert word in the list
         this.listOfWords = [];
         this.numberOfTry = 5;
         this.score = 1000;
         this.startTime = Date.now();
+        this.endTime = null;
+        this.pseudo = '';
+        this.isScoreSubmitted = false;
+        this.word = '';
+        this.unknowWord = '';
     }
 
     loadWords() {
@@ -26,6 +33,10 @@ class Game {
         });
     }
 
+    setWordList(words) {
+        this.listOfWords = words;
+    }
+
     chooseWord() {
         if (this.listOfWords.length > 0) {
             this.word = this.listOfWords[tools.getRandomInt(this.listOfWords.length)];
@@ -36,6 +47,10 @@ class Game {
     }
 
     guess(oneLetter) {
+        if (this.isGameOver()) {
+            return false;
+        }
+
         if (!this.word) {
             throw new Error("The word has not been set. Please ensure that the game has been initialized properly.");
         }
@@ -52,6 +67,11 @@ class Game {
             this.numberOfTry = Math.max(0, this.numberOfTry - 1);
             this.score = Math.max(0, this.score - 50);
         }
+
+        if (this.isGameOver()) {
+            this.endTime = Date.now();
+        }
+
         return found;
     }
 
@@ -64,21 +84,44 @@ class Game {
         return this.numberOfTry;
     }
 
+    getScore() {
+        if (this.endTime) {
+            const elapsedSeconds = Math.floor((this.endTime - this.startTime) / 1000);
+            return Math.max(0, this.score - elapsedSeconds);
+        } else {
+            const elapsedSeconds = Math.floor((Date.now() - this.startTime) / 1000);
+            return Math.max(0, this.score - elapsedSeconds);
+        }
+    }
+
+    isGameOver() {
+        return this.numberOfTry === 0 || this.unknowWord === this.word;
+    }
+
+    isGameWon() {
+        return this.unknowWord === this.word;
+    }
+
+    async saveScore() {
+        if (this.isGameWon() && this.pseudo && !this.isScoreSubmitted) {
+            await db.saveScore(this.pseudo, this.getScore(), this.word);
+            this.isScoreSubmitted = true;
+        }
+    }
+
+    setPseudo(pseudo) {
+        this.pseudo = pseudo;
+    }
+
     reset() {
         this.numberOfTry = 5;
         this.chooseWord();
         this.score = 1000;
         this.startTime = Date.now();
+        this.endTime = null;
+        this.pseudo = '';
+        this.isScoreSubmitted = false;
         return this.numberOfTry;
-    }
-
-    getScore() {
-        const elapsedSeconds = Math.floor((Date.now() - this.startTime) / 1000);
-        return Math.max(0, this.score - elapsedSeconds);
-    }
-
-    isGameOver() {
-        return this.numberOfTry === 0 || this.unknowWord === this.word;
     }
 
 }
