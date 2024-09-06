@@ -4,7 +4,25 @@
     <%- include('../partials/head'); %>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
 </head>
-
+<style>
+    .game-over-message {
+        font-size: 3em;
+        font-weight: bold;
+        text-align: center;
+        padding: 20px;
+        margin: 20px 0;
+        border-radius: 10px;
+        text-transform: uppercase;
+    }
+    .victory-message {
+        background-color: #4CAF50;
+        color: white;
+    }
+    .defeat-message {
+        background-color: #F44336;
+        color: white;
+    }
+</style>
 <body class="container" data-game-over="<%= isGameOver %>">
 
 <main>
@@ -21,8 +39,7 @@
                 <legend class="uk-legend">Nombre d'essai restant : <%= numberOfTries %></legend>
 
                 <div class="uk-margin">
-                    <input class="uk-input" type="text" name="word" placeholder="Tapez une lettre" maxlength="1">
-                </div>
+                    <input class="uk-input" type="text" name="word" placeholder="Tapez une lettre" maxlength="1" pattern="[a-zA-Z]" required>                </div>
 
                 <div class="uk-margin">
                     <button class="uk-input uk-button-danger uk-form-width-medium" type="submit" name="reset" value="true">Reset</button>
@@ -55,6 +72,18 @@
         <form action="/" method="post">
             <button class="uk-input uk-button-danger uk-form-width-medium" type="submit" name="reset" value="true">Reset</button>
         </form>
+    <% } %>
+
+    <% if (isGameOver) { %>
+        <% if (isGameWon) { %>
+            <div class="game-over-message victory-message">
+                Victoire !
+            </div>
+        <% } else { %>
+            <div class="game-over-message defeat-message">
+                Défaite !
+            </div>
+        <% } %>
     <% } %>
 
     <% if (game) { %>
@@ -100,6 +129,29 @@
         var tweetUrl = "https://twitter.com/intent/tweet?text=" + encodeURIComponent(tweetText);
         window.open(tweetUrl, '_blank');
     }
+
+    // Fonction pour valider la saisie
+    function validateInput(event) {
+        var char = String.fromCharCode(event.which);
+        if (!/[a-zA-Z]/.test(char)) {
+            event.preventDefault();
+            return false;
+        }
+    }
+
+    // Fonction pour convertir en majuscules
+    function toUpperCase(event) {
+        event.target.value = event.target.value.toUpperCase();
+    }
+
+    // Attacher les événements au champ de saisie
+    document.addEventListener('DOMContentLoaded', function() {
+        var input = document.querySelector('input[name="word"]');
+        if (input) {
+            input.addEventListener('keypress', validateInput);
+            input.addEventListener('input', toUpperCase);
+        }
+    });
 </script>
 
 </body>
