@@ -2,36 +2,28 @@ const Game = require('../game.js');
 const db = require('../db');
 const fs = require('fs');
 
-
-jest.mock('fs', () => ({
-    createReadStream: jest.fn(() => ({
-        pipe: jest.fn().mockReturnThis(),
-        on: jest.fn().mockImplementation(function(event, handler) {
-            if (event === 'data') {
-                handler({ word: 'test' });
-            } else if (event === 'end') {
-                handler();
-            }
-            return this;
-        })
-    }))
-}));
-
-
-
 jest.mock('../db', () => ({
     saveScore: jest.fn().mockResolvedValue(true),
     getTopScores: jest.fn().mockResolvedValue([])
 }));
 
 let game;
+let initialState;
 
 beforeEach(() => {
     jest.useFakeTimers();
-    game = new Game();
-    game.setWordList(['damien', 'test', 'word']);
-    game.word = "damien"; // Setting a known word for tests
-    game.unknowWord = "######";
+    initialState = {
+        word: 'damien',
+        unknowWord: '######',
+        numberOfTry: 5,
+        score: 1000,
+        startTime: Date.now(),
+        endTime: null,
+        pseudo: '',
+        isScoreSubmitted: false,
+        guessedLetters: []
+    };
+    game = new Game(initialState);
 });
 
 afterEach(() => {
@@ -60,13 +52,11 @@ describe("Game test", () => {
     });
 
     test("reset the game, so the number of tries should be 5", () => {
-        game.reset();
+        game.reset("newword");
         expect(game.getNumberOfTries()).toBe(5);
     });
 
     test("number of tries shouldn't decrease under 0", () => {
-        game.word = "carafe";
-        game.unknowWord = "######";
         for (let i = 0; i < 10; i++) {
             game.guess("z");
         }
@@ -74,25 +64,19 @@ describe("Game test", () => {
     });
 
     test("should show only 'a' letter", () => {
-        game.word = "damien";
-        game.unknowWord = "######";
         game.guess("a");
-        console.log(game.word);
-        console.log(game.unknowWord);
         expect(game.print()).toBe("#a####");
     });
 
-
     test("should show all occurrences of a letter", () => {
-        game.word = "carafe";
-        game.unknowWord = "######";
+        game = new Game({...initialState, word: 'carafe', unknowWord: '######'});
         game.guess("a");
         expect(game.print()).toBe("#a#a##");
     });
 
     describe("Score test", () => {
         test("reset should set score back to 1000", () => {
-            game.reset();
+            game.reset("newword");
             expect(game.getScore()).toBe(1000);
         });
 
@@ -113,7 +97,7 @@ describe("Game test", () => {
         });
 
         test("score should not decrease below 0", () => {
-            game.score = 30;
+            game = new Game({...initialState, score: 30});
             game.guess('z');
             expect(game.getScore()).toBe(0);
         });
@@ -124,9 +108,17 @@ describe("Game test", () => {
             expect(game.isScoreSubmitted).toBe(false);
         });
 
+        test("saveScore should set isScoreSubmitted to true", async () => {
+            game.setPseudo("TestUser");
+            game.unknowWord = "damien"; // Simulate winning the game
+            await game.saveScore(1000);
+            expect(game.isScoreSubmitted).toBe(true);
+            expect(db.saveScore).toHaveBeenCalledWith("TestUser", 1000, "damien");
+        });
+
         test("saveScore should not save score if game is not won", async () => {
             game.setPseudo("TestUser");
-            await game.saveScore();
+            await game.saveScore(1000);
             expect(game.isScoreSubmitted).toBe(false);
             expect(db.saveScore).not.toHaveBeenCalled();
         });
@@ -134,11 +126,11 @@ describe("Game test", () => {
         test("saveScore should not save score if already submitted", async () => {
             game.setPseudo("TestUser");
             game.unknowWord = "damien"; // Simulate winning the game
-            await game.saveScore();
+            await game.saveScore(1000);
             expect(game.isScoreSubmitted).toBe(true);
             
             // Try to save score again
-            await game.saveScore();
+            await game.saveScore(1000);
             expect(db.saveScore).toHaveBeenCalledTimes(1); // Should only be called once
         });
     });
@@ -178,10 +170,10 @@ describe("Game test", () => {
             game.pseudo = "TestUser";
             game.isScoreSubmitted = true;
 
-            game.reset();
+            game.reset("newword");
 
-            expect(game.numberOfTry).toBe(5);
-            expect(game.score).toBe(1000);
+            expect(game.getNumberOfTries()).toBe(5);
+            expect(game.getScore()).toBe(1000);
             expect(game.pseudo).toBe('');
             expect(game.isScoreSubmitted).toBe(false);
         });
@@ -223,7 +215,7 @@ describe("Game test", () => {
         test("reset should clear guessedLetters", () => {
             game.guess('a');
             game.guess('b');
-            game.reset();
+            game.reset("newword");
             expect(game.getGuessedLetters()).toBe('');
         });
 
@@ -238,25 +230,6 @@ describe("Game test", () => {
             game.guess('x'); // This should end the game
             game.guess('y'); // This should not be added
             expect(game.getGuessedLetters()).toBe('x');
-        });
-    });
-
-    describe("Word loading and selection", () => {
-        test("loadWords should load words from file", async () => {
-            await game.loadWords();
-            expect(game.listOfWords).toContain('test');
-            expect(fs.createReadStream).toHaveBeenCalledWith('words_fr.txt');
-        });
-
-        test("chooseWord should select a word from the list", () => {
-            game.chooseWord();
-            expect(game.word).toBeDefined();
-            expect(game.unknowWord).toMatch(/^#+$/);
-        });
-
-        test("setWordList should set the list of words", () => {
-            game.setWordList(['apple', 'banana', 'cherry']);
-            expect(game.listOfWords).toEqual(['apple', 'banana', 'cherry']);
         });
     });
 
@@ -306,25 +279,86 @@ describe("Game test", () => {
         });
     });
 
-    describe("Error handling", () => {
-        test("loadWords should reject on file read error", async () => {
-            fs.createReadStream.mockImplementationOnce(() => ({
-                pipe: jest.fn().mockReturnThis(),
-                on: jest.fn().mockImplementation(function(event, handler) {
-                    if (event === 'error') {
-                        handler(new Error('File read error'));
-                    }
-                    return this;
-                })
-            }));
-            await expect(game.loadWords()).rejects.toThrow('File read error');
+    test("getState should return the current game state", () => {
+        const state = game.getState();
+        expect(state).toEqual({
+            word: 'damien',
+            unknowWord: '######',
+            numberOfTry: 5,
+            score: 1000,
+            startTime: expect.any(Number),
+            endTime: null,
+            pseudo: '',
+            isScoreSubmitted: false,
+            guessedLetters: []
         });
     });
 
-
-    test("should throw an error if no words are available", () => {
-        game.listOfWords = [];
-        expect(() => game.chooseWord()).toThrow("No words available to choose from.");
+    test("constructor should throw an error if state is not provided", () => {
+        expect(() => new Game()).toThrow("Game state is required");
     });
 
+    test("constructor should initialize game with provided state", () => {
+        const customState = {
+            word: 'test',
+            unknowWord: '####',
+            numberOfTry: 3,
+            score: 500,
+            startTime: Date.now(),
+            endTime: null,
+            pseudo: 'player1',
+            isScoreSubmitted: false,
+            guessedLetters: ['a', 'b']
+        };
+        const customGame = new Game(customState);
+        expect(customGame.getState()).toEqual({
+            ...customState,
+            guessedLetters: expect.any(Array)
+        });
+    });
+
+    test("setPseudo should set the pseudo", () => {
+        game.setPseudo("testPlayer");
+        expect(game.pseudo).toBe("testPlayer");
+    });
+
+    test("saveScore should not save score if game is not won", async () => {
+        game.setPseudo("testPlayer");
+        await game.saveScore(1000);
+        expect(game.isScoreSubmitted).toBe(false);
+        expect(db.saveScore).not.toHaveBeenCalled();
+    });
+
+    test("guess should handle end of game correctly", () => {
+        game.numberOfTry = 1;
+        game.guess('z'); // This should end the game
+        expect(game.endTime).not.toBeNull();
+        expect(game.guess('a')).toBe(false); // Should not affect the game state
+    });
+});
+
+describe("Edge cases", () => {
+    test("getScore should handle very long game durations", () => {
+        const veryOldStartTime = Date.now() - 1000000000; // About 11.5 days ago
+        game = new Game({...initialState, startTime: veryOldStartTime});
+        expect(game.getScore()).toBe(0);
+    });
+
+    test("guess should handle empty string", () => {
+        expect(game.guess('')).toBe(false);
+        expect(game.getNumberOfTries()).toBe(4); // Should count as an incorrect guess
+    });
+
+    test("guess should handle non-alphabetic characters", () => {
+        expect(game.guess('1')).toBe(false);
+        expect(game.getNumberOfTries()).toBe(4);
+        expect(game.guess('!')).toBe(false);
+        expect(game.getNumberOfTries()).toBe(3);
+    });
+
+    describe("Error handling", () => {
+        test("should throw an error if initialized without state", () => {
+            expect(() => new Game()).toThrow("Game state is required");
+        });
+    });
 });

@@ -1,48 +1,56 @@
 const tools = require('./tools.js');
-const csv = require('csv-parser');
-const fs = require('fs');
 const db = require('./db.js');
 
 class Game {
-    constructor() {
-        this.listOfWords = [];
-        this.numberOfTry = 5;
-        this.score = 1000;
-        this.startTime = Date.now();
-        this.endTime = null;
-        this.pseudo = '';
-        this.isScoreSubmitted = false;
-        this.guessedLetters = new Set();
-    }
-
-    loadWords() {
-        return new Promise((resolve, reject) => {
-            fs.createReadStream('words_fr.txt')
-                .pipe(csv())
-                .on('data', (row) => {
-                    this.listOfWords.push(row.word.toLowerCase());
-                })
-                .on('end', () => {
-                    console.log('CSV file successfully processed');
-                    this.chooseWord();
-                    resolve();
-                })
-                .on('error', reject);
-        });
-    }
-
-    setWordList(words) {
-        this.listOfWords = words;
-    }
-
-    chooseWord() {
-        if (this.listOfWords.length > 0) {
-            this.word = this.listOfWords[tools.getRandomInt(this.listOfWords.length)];
-            console.log("Word : " + this.word);
-            this.unknowWord = this.word.replace(/./g, '#');
+    constructor(state) {
+        if (state) {
+            this.word = state.word;
+            this.unknowWord = state.unknowWord;
+            this.numberOfTry = state.numberOfTry;
+            this.score = state.score;
+            this.startTime = state.startTime;
+            this.endTime = state.endTime;
+            this.pseudo = state.pseudo;
+            this.isScoreSubmitted = state.isScoreSubmitted;
+            this.guessedLetters = new Set(state.guessedLetters);
         } else {
-            throw new Error("No words available to choose from.");
+            throw new Error("Game state is required");
         }
+    }
+
+    getState() {
+        return {
+            word: this.word,
+            unknowWord: this.unknowWord,
+            numberOfTry: this.numberOfTry,
+            score: this.score,
+            startTime: this.startTime,
+            endTime: this.endTime,
+            pseudo: this.pseudo,
+            isScoreSubmitted: this.isScoreSubmitted,
+            guessedLetters: Array.from(this.guessedLetters)
+        };
+    }
+
+    print() {
+        return this.unknowWord;
+    }
+
+    getNumberOfTries() {
+        return this.numberOfTry;
+    }
+
+    getScore() {
+        const elapsedSeconds = Math.floor((this.endTime || Date.now()) - this.startTime) / 1000;
+        return Math.max(0, Math.floor(this.score - elapsedSeconds));
+    }
+
+    isGameOver() {
+        return this.numberOfTry === 0 || this.unknowWord === this.word;
+    }
+
+    isGameWon() {
+        return this.unknowWord === this.word;
     }
 
     guess(oneLetter) {
@@ -73,26 +81,12 @@ class Game {
         return found;
     }
 
-
-    print() {
-        return this.unknowWord;
+    setPseudo(pseudo) {
+        this.pseudo = pseudo;
     }
 
-    getNumberOfTries() {
-        return this.numberOfTry;
-    }
-
-    getScore() {
-        const elapsedSeconds = Math.floor((this.endTime || Date.now()) - this.startTime) / 1000;
-        return Math.max(0, Math.floor(this.score - elapsedSeconds));
-    }
-
-    isGameOver() {
-        return this.numberOfTry === 0 || this.unknowWord === this.word;
-    }
-
-    isGameWon() {
-        return this.unknowWord === this.word;
+    getGuessedLetters() {
+        return Array.from(this.guessedLetters).sort().join(', ');
     }
 
     async saveScore(finalScore) {
@@ -102,26 +96,17 @@ class Game {
         }
     }
 
-    setPseudo(pseudo) {
-        this.pseudo = pseudo;
-    }
-
-    getGuessedLetters() {
-        return Array.from(this.guessedLetters).sort().join(', ');
-    }
-    
-    reset() {
+    reset(newWord) {
+        this.word = newWord.toLowerCase();
+        this.unknowWord = this.word.replace(/./g, '#');
         this.numberOfTry = 5;
-        this.chooseWord();
         this.score = 1000;
         this.startTime = Date.now();
         this.endTime = null;
         this.pseudo = '';
         this.isScoreSubmitted = false;
         this.guessedLetters.clear();
-        return this.numberOfTry;
     }
-
 }
 
 module.exports = Game;
