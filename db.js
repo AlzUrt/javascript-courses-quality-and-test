@@ -32,9 +32,35 @@ class DatabaseManager {
                         date TEXT
                     )`, (err) => {
                         if (err) reject(err);
-                        else resolve();
+                        else {
+                            this.db.run(`CREATE TABLE IF NOT EXISTS last_played (
+                                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                                date TEXT
+                            )`, (err) => {
+                                if (err) reject(err);
+                                else resolve();
+                            });
+                        }
                     });
                 }
+            });
+        });
+    }
+
+    getLastPlayedDate() {
+        return new Promise((resolve, reject) => {
+            this.db.get("SELECT date FROM last_played ORDER BY id DESC LIMIT 1", (err, row) => {
+                if (err) reject(err);
+                else resolve(row ? row.date : null);
+            });
+        });
+    }
+
+    updateLastPlayedDate(date) {
+        return new Promise((resolve, reject) => {
+            this.db.run("INSERT INTO last_played (date) VALUES (?)", [date], (err) => {
+                if (err) reject(err);
+                else resolve();
             });
         });
     }

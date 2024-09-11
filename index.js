@@ -24,6 +24,7 @@ app.set('view engine', 'ejs');
 async function getOrCreateGameState(req) {
     if (!req.session.gameState) {
         const wordOfTheDay = await db.getWordOfTheDay();
+        const lastPlayedDate = await db.getLastPlayedDate();
         req.session.gameState = {
             word: wordOfTheDay,
             unknowWord: wordOfTheDay.replace(/./g, '#'),
@@ -33,81 +34,82 @@ async function getOrCreateGameState(req) {
             endTime: null,
             pseudo: '',
             isScoreSubmitted: false,
-            guessedLetters: []
+            guessedLetters: [],
+            lastPlayedDate: lastPlayedDate
         };
     }
-    return req.session.gameState;
+    return new Game(req.session.gameState);
 }
-
-// Middleware to ensure game state is initialized and create Game instance
-app.use(async (req, res, next) => {
-    try {
-        const gameState = await getOrCreateGameState(req);
-        req.game = new Game(gameState);
-        next();
-    } catch (error) {
-        console.error("Error initializing game:", error);
-        res.status(500).send("An error occurred while initializing the game");
-    }
-});
 
 // Routes
 app.get('/', async (request, response) => {
-    console.log("word : " + request.game.word);
+    const game = await getOrCreateGameState(request);
+    console.log("word : " + game.word);
     const topScores = await db.getTopScores();
+    const canPlayToday = game.canPlayToday();
+
     response.render('pages/index', {
-        game: request.game.print(),
-        word: request.game.word,
-        numberOfTries: request.game.getNumberOfTries(),
-        score: request.game.getScore(),
-        isGameOver: request.game.isGameOver(),
-        isGameWon: request.game.isGameWon(),
-        isScoreSubmitted: request.game.isScoreSubmitted,
-        guessedLetters: request.game.getGuessedLetters(),
-        topScores: topScores
+        game: game.print(),
+        word: game.word,
+        numberOfTries: game.getNumberOfTries(),
+        score: game.getScore(),
+        isGameOver: game.isGameOver(),
+        isGameWon: game.isGameWon(),
+        isScoreSubmitted: game.isScoreSubmitted,
+        guessedLetters: game.getGuessedLetters(),
+        topScores: topScores,
+        canPlayToday: canPlayToday
     });
 });
 
 app.post('/', async (request, response) => {
     try {
+        const game = await getOrCreateGameState(request);
+        
+        if (!game.canPlayToday()) {
+            throw new Error("You can only play once per day");
+        }
+
         if (request.body.reset) {
             console.log("Reset !");
             const wordOfTheDay = await db.getWordOfTheDay();
-            request.game.reset(wordOfTheDay);
-        } else if (request.body.word && !request.game.isGameOver()) {
-            let guess = request.game.guess(request.body.word);
+            await game.reset(wordOfTheDay);
+        } else if (request.body.word && !game.isGameOver()) {
+            let guess = game.guess(request.body.word);
             console.log("Guess :" + guess);
-        } else if (request.body.pseudo && request.game.isGameWon() && !request.game.isScoreSubmitted) {
-            request.game.setPseudo(request.body.pseudo);
+        } else if (request.body.pseudo && game.isGameWon() && !game.isScoreSubmitted) {
+            game.setPseudo(request.body.pseudo);
             const finalScore = parseInt(request.body.finalScore, 10);
-            await request.game.saveScore(finalScore);
+            await game.saveScore(finalScore);
         } else {
             console.log("No valid action in the request body or game is over.");
         }
 
         // Update session with new game state
-        request.session.gameState = request.game.getState();
+        request.session.gameState = game.getState();
 
         const topScores = await db.getTopScores();
         response.render('pages/index', {
-            game: request.game.print(),
-            word: request.game.word,
-            numberOfTries: request.game.getNumberOfTries(),
-            score: request.game.getScore(),
-            isGameOver: request.game.isGameOver(),
-            isGameWon: request.game.isGameWon(),
-            isScoreSubmitted: request.game.isScoreSubmitted,
-            guessedLetters: request.game.getGuessedLetters(),
-            topScores: topScores
+            game: game.print(),
+            word: game.word,
+            numberOfTries: game.getNumberOfTries(),
+            score: game.getScore(),
+            isGameOver: game.isGameOver(),
+            isGameWon: game.isGameWon(),
+            isScoreSubmitted: game.isScoreSubmitted,
+            guessedLetters: game.getGuessedLetters(),
+            topScores: topScores,
+            canPlayToday: game.canPlayToday()
         });
     } catch (error) {
         console.error(error.message);
-        response.status(500).send("An error occurred: " + error.message);
+        response.status(400).send(error.message);
     }
 });
 
-app.get('/score', (request, response) => {
-    response.json({ score: request.game.getScore() });
+app.get('/score', async (request, response) => {
+    const game = await getOrCreateGameState(request);
+    response.json({ score: game.getScore() });
 });
 
 (async () => {

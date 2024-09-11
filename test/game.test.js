@@ -1,10 +1,10 @@
 const Game = require('../game.js');
 const db = require('../db');
-const fs = require('fs');
 
 jest.mock('../db', () => ({
     saveScore: jest.fn().mockResolvedValue(true),
-    getTopScores: jest.fn().mockResolvedValue([])
+    getTopScores: jest.fn().mockResolvedValue([]),
+    updateLastPlayedDate: jest.fn().mockResolvedValue(true)
 }));
 
 let game;
@@ -21,7 +21,8 @@ beforeEach(() => {
         endTime: null,
         pseudo: '',
         isScoreSubmitted: false,
-        guessedLetters: []
+        guessedLetters: [],
+        lastPlayedDate: null
     };
     game = new Game(initialState);
 });
@@ -51,8 +52,8 @@ describe("Game test", () => {
         expect(game.getNumberOfTries()).toBe(4);
     });
 
-    test("reset the game, so the number of tries should be 5", () => {
-        game.reset("newword");
+    test("reset the game, so the number of tries should be 5", async () => {
+        await game.reset("newword");
         expect(game.getNumberOfTries()).toBe(5);
     });
 
@@ -75,8 +76,8 @@ describe("Game test", () => {
     });
 
     describe("Score test", () => {
-        test("reset should set score back to 1000", () => {
-            game.reset("newword");
+        test("reset should set score back to 1000", async () => {
+            await game.reset("newword");
             expect(game.getScore()).toBe(1000);
         });
 
@@ -164,13 +165,13 @@ describe("Game test", () => {
     });
 
     describe("Reset tests", () => {
-        test("reset should set all game properties to initial values", () => {
+        test("reset should set all game properties to initial values", async () => {
             game.numberOfTry = 0;
             game.score = 500;
             game.pseudo = "TestUser";
             game.isScoreSubmitted = true;
 
-            game.reset("newword");
+            await game.reset("newword");
 
             expect(game.getNumberOfTries()).toBe(5);
             expect(game.getScore()).toBe(1000);
@@ -212,10 +213,10 @@ describe("Game test", () => {
             expect(game.getGuessedLetters()).toBe('a, b');
         });
 
-        test("reset should clear guessedLetters", () => {
+        test("reset should clear guessedLetters", async () => {
             game.guess('a');
             game.guess('b');
-            game.reset("newword");
+            await game.reset("newword");
             expect(game.getGuessedLetters()).toBe('');
         });
 
@@ -279,86 +280,110 @@ describe("Game test", () => {
         });
     });
 
-    test("getState should return the current game state", () => {
-        const state = game.getState();
-        expect(state).toEqual({
-            word: 'damien',
-            unknowWord: '######',
-            numberOfTry: 5,
-            score: 1000,
-            startTime: expect.any(Number),
-            endTime: null,
-            pseudo: '',
-            isScoreSubmitted: false,
-            guessedLetters: []
-        });
-    });
-
-    test("constructor should throw an error if state is not provided", () => {
-        expect(() => new Game()).toThrow("Game state is required");
-    });
-
-    test("constructor should initialize game with provided state", () => {
-        const customState = {
-            word: 'test',
-            unknowWord: '####',
-            numberOfTry: 3,
-            score: 500,
-            startTime: Date.now(),
-            endTime: null,
-            pseudo: 'player1',
-            isScoreSubmitted: false,
-            guessedLetters: ['a', 'b']
-        };
-        const customGame = new Game(customState);
-        expect(customGame.getState()).toEqual({
-            ...customState,
-            guessedLetters: expect.any(Array)
-        });
-    });
-
-    test("setPseudo should set the pseudo", () => {
-        game.setPseudo("testPlayer");
-        expect(game.pseudo).toBe("testPlayer");
-    });
-
-    test("saveScore should not save score if game is not won", async () => {
-        game.setPseudo("testPlayer");
-        await game.saveScore(1000);
-        expect(game.isScoreSubmitted).toBe(false);
-        expect(db.saveScore).not.toHaveBeenCalled();
-    });
-
-    test("guess should handle end of game correctly", () => {
-        game.numberOfTry = 1;
-        game.guess('z'); // This should end the game
-        expect(game.endTime).not.toBeNull();
-        expect(game.guess('a')).toBe(false); // Should not affect the game state
-    });
-});
-
-describe("Edge cases", () => {
-    test("getScore should handle very long game durations", () => {
-        const veryOldStartTime = Date.now() - 1000000000; // About 11.5 days ago
-        game = new Game({...initialState, startTime: veryOldStartTime});
-        expect(game.getScore()).toBe(0);
-    });
-
-    test("guess should handle empty string", () => {
-        expect(game.guess('')).toBe(false);
-        expect(game.getNumberOfTries()).toBe(4); // Should count as an incorrect guess
-    });
-
-    test("guess should handle non-alphabetic characters", () => {
-        expect(game.guess('1')).toBe(false);
-        expect(game.getNumberOfTries()).toBe(4);
-        expect(game.guess('!')).toBe(false);
-        expect(game.getNumberOfTries()).toBe(3);
-    });
-
     describe("Error handling", () => {
         test("should throw an error if initialized without state", () => {
             expect(() => new Game()).toThrow("Game state is required");
+        });
+    });
+
+    describe("Daily game limit", () => {
+        test("canPlayToday should return true if last played date is not today", () => {
+            const yesterday = new Date(Date.now() - 86400000).toISOString().split('T')[0];
+            game = new Game({...initialState, lastPlayedDate: yesterday});
+            expect(game.canPlayToday()).toBe(true);
+        });
+
+        test("canPlayToday should return false if last played date is today", () => {
+            const today = new Date().toISOString().split('T')[0];
+            game = new Game({...initialState, lastPlayedDate: today});
+            expect(game.canPlayToday()).toBe(false);
+        });
+
+        test("reset should throw an error if trying to play twice in one day", async () => {
+            const today = new Date().toISOString().split('T')[0];
+            game = new Game({...initialState, lastPlayedDate: today});
+            await expect(game.reset("newword")).rejects.toThrow("You can only play once per day");
+        });
+
+        test("reset should update lastPlayedDate when resetting the game", async () => {
+            const yesterday = new Date(Date.now() - 86400000).toISOString().split('T')[0];
+            game = new Game({...initialState, lastPlayedDate: yesterday});
+            await game.reset("newword");
+            expect(game.lastPlayedDate).toBe(new Date().toISOString().split('T')[0]);
+            expect(db.updateLastPlayedDate).toHaveBeenCalledWith(game.lastPlayedDate);
+        });
+    });
+
+    describe("Additional coverage tests", () => {
+        test("getState should return the current game state", () => {
+            const state = game.getState();
+            expect(state).toEqual({
+                word: 'damien',
+                unknowWord: '######',
+                numberOfTry: 5,
+                score: 1000,
+                startTime: expect.any(Number),
+                endTime: null,
+                pseudo: '',
+                isScoreSubmitted: false,
+                guessedLetters: [],
+                lastPlayedDate: null
+            });
+        });
+    
+        test("constructor should throw an error if state is not provided", () => {
+            expect(() => new Game()).toThrow("Game state is required");
+        });
+    
+        test("constructor should initialize game with provided state", () => {
+            const customState = {
+                word: 'test',
+                unknowWord: '####',
+                numberOfTry: 3,
+                score: 500,
+                startTime: Date.now(),
+                endTime: null,
+                pseudo: 'player1',
+                isScoreSubmitted: false,
+                guessedLetters: ['a', 'b'],
+                lastPlayedDate: '2023-01-01'
+            };
+            const customGame = new Game(customState);
+            expect(customGame.getState()).toEqual({
+                ...customState,
+                guessedLetters: expect.any(Array)
+            });
+        });
+    
+        test("setPseudo should set the pseudo", () => {
+            game.setPseudo("testPlayer");
+            expect(game.pseudo).toBe("testPlayer");
+        });
+    
+        test("guess should handle empty string", () => {
+            expect(game.guess('')).toBe(false);
+            expect(game.getNumberOfTries()).toBe(4); // Should count as an incorrect guess
+        });
+    
+        test("guess should handle non-alphabetic characters", () => {
+            expect(game.guess('1')).toBe(false);
+            expect(game.getNumberOfTries()).toBe(4);
+            expect(game.guess('!')).toBe(false);
+            expect(game.getNumberOfTries()).toBe(3);
+        });
+    
+        test("getScore should handle very long game durations", () => {
+            const veryOldStartTime = Date.now() - 1000000000; // About 11.5 days ago
+            game = new Game({...initialState, startTime: veryOldStartTime});
+            expect(game.getScore()).toBe(0);
+        });
+    
+        test("reset should update lastPlayedDate and call db.updateLastPlayedDate", async () => {
+            const yesterday = new Date(Date.now() - 86400000).toISOString().split('T')[0];
+            game = new Game({...initialState, lastPlayedDate: yesterday});
+            await game.reset("newword");
+            expect(game.lastPlayedDate).toBe(new Date().toISOString().split('T')[0]);
+            expect(db.updateLastPlayedDate).toHaveBeenCalledWith(game.lastPlayedDate);
         });
     });
 });

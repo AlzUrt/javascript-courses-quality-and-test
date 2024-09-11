@@ -13,6 +13,7 @@ class Game {
             this.pseudo = state.pseudo;
             this.isScoreSubmitted = state.isScoreSubmitted;
             this.guessedLetters = new Set(state.guessedLetters);
+            this.lastPlayedDate = state.lastPlayedDate;
         } else {
             throw new Error("Game state is required");
         }
@@ -28,8 +29,14 @@ class Game {
             endTime: this.endTime,
             pseudo: this.pseudo,
             isScoreSubmitted: this.isScoreSubmitted,
-            guessedLetters: Array.from(this.guessedLetters)
+            guessedLetters: Array.from(this.guessedLetters),
+            lastPlayedDate: this.lastPlayedDate
         };
+    }
+
+    canPlayToday() {
+        const today = new Date().toISOString().split('T')[0];
+        return this.lastPlayedDate !== today;
     }
 
     print() {
@@ -96,7 +103,12 @@ class Game {
         }
     }
 
-    reset(newWord) {
+    async reset(newWord) {
+        const today = new Date().toISOString().split('T')[0];
+        if (this.lastPlayedDate === today) {
+            throw new Error("You can only play once per day");
+        }
+
         this.word = newWord.toLowerCase();
         this.unknowWord = this.word.replace(/./g, '#');
         this.numberOfTry = 5;
@@ -106,6 +118,9 @@ class Game {
         this.pseudo = '';
         this.isScoreSubmitted = false;
         this.guessedLetters.clear();
+        this.lastPlayedDate = today;
+
+        await db.updateLastPlayedDate(this.lastPlayedDate);
     }
 }
 
