@@ -5,7 +5,6 @@ const db = require('./db.js');
 
 class Game {
     constructor() {
-        //insert word in the list
         this.listOfWords = [];
         this.numberOfTry = 5;
         this.score = 1000;
@@ -39,6 +38,7 @@ class Game {
     chooseWord() {
         if (this.listOfWords.length > 0) {
             this.word = this.listOfWords[tools.getRandomInt(this.listOfWords.length)];
+            console.log("Word : " + this.word);
             this.unknowWord = this.word.replace(/./g, '#');
         } else {
             throw new Error("No words available to choose from.");
@@ -83,32 +83,21 @@ class Game {
     }
 
     getScore() {
-        if (this.isGameOver()) {
-            return this.score;
-        } else {
-            const elapsedSeconds = Math.floor((Date.now() - this.startTime) / 1000);
-            return Math.max(0, this.score - elapsedSeconds);
-        }
+        const elapsedSeconds = Math.floor((this.endTime || Date.now()) - this.startTime) / 1000;
+        return Math.max(0, Math.floor(this.score - elapsedSeconds));
     }
 
     isGameOver() {
-        if (this.numberOfTry === 0 || this.unknowWord === this.word) {
-            if (this.endTime === null) {
-                this.endTime = Date.now();
-                this.score = this.getScore();
-            }
-            return true;
-        }
-        return false;
+        return this.numberOfTry === 0 || this.unknowWord === this.word;
     }
 
     isGameWon() {
         return this.unknowWord === this.word;
     }
 
-    async saveScore() {
+    async saveScore(finalScore) {
         if (this.isGameWon() && this.pseudo && !this.isScoreSubmitted) {
-            await db.saveScore(this.pseudo, this.getScore(), this.word);
+            await db.saveScore(this.pseudo, finalScore, this.word);
             this.isScoreSubmitted = true;
         }
     }

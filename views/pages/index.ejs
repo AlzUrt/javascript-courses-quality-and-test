@@ -54,18 +54,17 @@
         <% } %>
         <% } else if (isGameWon && !isScoreSubmitted) { %>
             <p>Félicitations ! Vous avez gagné. Entrez votre pseudo pour enregistrer votre score.</p>
-            <form action="/" method="post">
+            <form action="/" method="post" id="scoreForm">
                 <input class="uk-input" type="text" name="pseudo" placeholder="Entrez votre pseudo" required>
+                <input type="hidden" name="finalScore" id="finalScore" value="<%= score %>">
                 <button class="uk-button uk-button-primary" type="submit">Enregistrer le score</button>
             </form>
-            <!-- Nouveau bouton de partage Twitter -->
             <button id="twitterShareBtn" class="uk-button uk-button-secondary" onclick="shareOnTwitter()">Partager sur Twitter</button>
         <% } else if (isGameWon && isScoreSubmitted) { %>
             <p>Votre score a été enregistré. Merci d'avoir joué !</p>
             <form action="/" method="post">
                 <button class="uk-input uk-button-danger uk-form-width-medium" type="submit" name="reset" value="true">Nouvelle partie</button>
             </form>
-            <!-- Nouveau bouton de partage Twitter -->
             <button id="twitterShareBtn" class="uk-button uk-button-secondary" onclick="shareOnTwitter()">Partager sur Twitter</button>
     <% } else { %>
         <p>Le jeu est terminé. Appuyez sur Reset pour recommencer.</p>
@@ -104,31 +103,63 @@
 </main>
 
 <script>
-    (function() {
+    document.addEventListener('DOMContentLoaded', function() {
+        console.log("Le DOM est chargé");
+        
         var isGameOver = document.body.dataset.gameOver === 'true';
-
+        console.log("Game Over:", isGameOver);
+    
+        var scoreElement = document.getElementById('score');
+        var finalScoreElement = document.getElementById('finalScore');
+    
         function updateScore() {
-            if (!isGameOver) {
-                $.get('/score', function(data) {
-                    $('#score').text(data.score);
-                });
-            }
+            $.get('/score', function(data) {
+                console.log("Score mis à jour:", data.score);
+                if (scoreElement) {
+                    scoreElement.textContent = data.score;
+                }
+                if (finalScoreElement) {
+                    finalScoreElement.value = data.score;
+                }
+            });
         }
-
-        // Update score every second
+    
+        // Mise à jour initiale du score
+        updateScore();
+    
+        // Mise à jour du score toutes les secondes
         var scoreInterval = setInterval(updateScore, 1000);
-
-        // Stop updating score if game is over
+    
+        // Arrêter la mise à jour du score si le jeu est terminé
         if (isGameOver) {
             clearInterval(scoreInterval);
         }
-    })();
+    
+        // Mettre à jour le score final lors de la soumission du formulaire
+        var scoreForm = document.getElementById('scoreForm');
+        if (scoreForm) {
+            scoreForm.addEventListener('submit', function(event) {
+                event.preventDefault();
+                // Faire une dernière mise à jour du score avant de soumettre
+                $.get('/score', function(data) {
+                    if (finalScoreElement && scoreElement) {
+                        finalScoreElement.value = data.score;
+                        scoreElement.textContent = data.score;
+                    }
+                    scoreForm.submit();
+                });
+            });
+        }
+    
+        // Fonction pour partager sur Twitter
+        window.shareOnTwitter = function() {
+            var tweetText = "J'ai gagné au jeu du Pendu avec un score de " + (scoreElement ? scoreElement.textContent : "") + " ! Pouvez-vous faire mieux ?";
+            var tweetUrl = "https://twitter.com/intent/tweet?text=" + encodeURIComponent(tweetText);
+            window.open(tweetUrl, '_blank');
+        }
+    });
 
-    function shareOnTwitter() {
-        var tweetText = "J'ai gagné au jeu du Pendu avec un score de " + document.getElementById('score').innerText  + " ! Pouvez-vous faire mieux ?";
-        var tweetUrl = "https://twitter.com/intent/tweet?text=" + encodeURIComponent(tweetText);
-        window.open(tweetUrl, '_blank');
-    }
+      
 
     // Fonction pour valider la saisie
     function validateInput(event) {

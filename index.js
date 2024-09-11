@@ -42,7 +42,8 @@ app.post('/', async (request, response) => {
             console.log("Guess :" + guess);
         } else if (request.body.pseudo && game.isGameWon() && !game.isScoreSubmitted) {
             game.setPseudo(request.body.pseudo);
-            await game.saveScore();
+            const finalScore = parseInt(request.body.finalScore, 10);
+            await game.saveScore(finalScore);
         } else {
             console.log("No valid action in the request body or game is over.");
         }
@@ -69,7 +70,6 @@ app.post('/', async (request, response) => {
 app.get('/score', (request, response) => {
     response.json({ score: game.getScore() });
 });
-
 
 (async () => {
     try {

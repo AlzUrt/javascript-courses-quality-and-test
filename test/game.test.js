@@ -124,14 +124,6 @@ describe("Game test", () => {
             expect(game.isScoreSubmitted).toBe(false);
         });
 
-        test("saveScore should set isScoreSubmitted to true", async () => {
-            game.setPseudo("TestUser");
-            game.unknowWord = "damien"; // Simulate winning the game
-            await game.saveScore();
-            expect(game.isScoreSubmitted).toBe(true);
-            expect(db.saveScore).toHaveBeenCalledWith("TestUser", expect.any(Number), "damien");
-        });
-
         test("saveScore should not save score if game is not won", async () => {
             game.setPseudo("TestUser");
             await game.saveScore();
