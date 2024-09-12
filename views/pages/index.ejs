@@ -5,22 +5,151 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
 </head>
 <style>
-    .game-over-message {
-        font-size: 3em;
-        font-weight: bold;
-        text-align: center;
+    body {
+        font-family: 'Arial', sans-serif;
+        color: #ffffff;
+        margin: 0;
+        padding: 0;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        min-height: 100vh;
+    }
+
+    main {
+        border-radius: 12px;
         padding: 20px;
-        margin: 20px 0;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        max-width: 600px;
+        width: 100%;
+    }
+
+    h1 {
+        font-size: 2.8em;
+        color: #ffffff;
+        margin-bottom: 25px;
+        font-weight: 700;
+    }
+
+    h2, h3 {
+        font-size: 1.8em;
+        color: #ffffff;
+        margin-bottom: 20px;
+        font-weight: 600;
+    }
+
+    /* Paragraphes */
+    p {
+        font-size: 1.2em;
+        line-height: 1.8;
+        color: #ffffff;
+        margin-bottom: 20px;
+    }
+
+    /* Listes */
+    ul {
+        list-style-type: none;
+        padding: 0;
+    }
+
+    li {
+        background-color: rgba(255, 255, 255, 0.2);
+        color: #ffffff;
+        margin: 10px 0;
+        padding: 12px;
         border-radius: 10px;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        transition: background-color 0.3s ease;
+    }
+
+    li:hover {
+        background-color: rgba(255, 255, 255, 0.3);
+    }
+
+    /* Messages de fin de jeu */
+    .game-over-message {
+        font-size: 2.2em;
+        font-weight: bold;
+        padding: 20px;
+        margin: 25px 0;
+        border-radius: 12px;
         text-transform: uppercase;
+        transition: transform 0.3s ease-in-out, background-color 0.3s ease;
     }
+
     .victory-message {
-        background-color: #4CAF50;
+        background-color: #43a047;
         color: white;
     }
+
     .defeat-message {
-        background-color: #F44336;
+        background-color: #e53935;
         color: white;
+    }
+
+    /* Champs et boutons */
+    .uk-input, .uk-button, .uk-fieldset, .uk-legend {
+        width: 100%;
+        box-sizing: border-box;
+        font-size: 1.1em;
+        margin-bottom: 15px;
+    }
+
+    .uk-input {
+        padding: 12px;
+        border-radius: 10px;
+        border: 1px solid rgba(255, 255, 255, 0.3);
+        background-color: rgba(255, 255, 255, 0.1);
+        color: #ffffff;
+        transition: border-color 0.3s ease, background-color 0.3s ease;
+    }
+
+    .uk-input:focus {
+        color : #ffffff;
+        border-color: #03a9f4;
+        background-color: rgba(255, 255, 255, 0.2);
+        outline: none;
+    }
+
+    .uk-button {
+        padding: 12px;
+        border-radius: 10px;
+        border: none;
+        font-size: 1.1em;
+        cursor: pointer;
+        transition: background-color 0.3s ease, transform 0.3s ease;
+        color: white;
+    }
+
+    .uk-button:hover {
+        transform: translateY(-3px);
+    }
+
+    .uk-button-danger {
+        background-color: #e53935;
+    }
+
+    .uk-button-danger:hover {
+        background-color: #c62828;
+    }
+
+    .uk-button-secondary {
+        background-color: #039be5;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+    }
+
+    .uk-button-secondary:hover {
+        background-color: #0288d1;
+    }
+
+    .uk-button-primary {
+        background-color: #43a047;
+    }
+
+    .uk-button-primary:hover {
+        background-color: #388e3c;
     }
 </style>
 <body class="container" data-game-over="<%= isGameOver %>">
@@ -37,8 +166,6 @@
             <% }); %>
         </ul>
     <% } else { %>
-        <p>Essayez de deviner le mot !</p>
-
         <h2>Score: <span id="score"><%= score %></span></h2>
 
         <% if (!isGameOver) { %>
@@ -49,7 +176,6 @@
                         <input class="uk-input" type="text" name="word" placeholder="Tapez une lettre" maxlength="1" pattern="[a-zA-Z]" required>
                     </div>
                     <div class="uk-margin">
-                        <button class="uk-input uk-button-danger uk-form-width-medium" type="submit" name="reset" value="true">Reset</button>
                         <button class="uk-input uk-button-secondary uk-form-width-medium" type="submit" value="form-success">Tester</button>
                     </div>
                 </fieldset>
@@ -67,16 +193,10 @@
             </form>
             <button id="twitterShareBtn" class="uk-button uk-button-secondary" onclick="shareOnTwitter()">Partager sur Twitter</button>
         <% } else if (isGameWon && isScoreSubmitted) { %>
-            <p>Votre score a été enregistré. Merci d'avoir joué !</p>
-            <form action="/" method="post">
-                <button class="uk-input uk-button-danger uk-form-width-medium" type="submit" name="reset" value="true">Nouvelle partie</button>
-            </form>
+            <p>Votre score a été enregistré. Merci d'avoir joué ! Revenez demain pour un nouveau mot.</p>
             <button id="twitterShareBtn" class="uk-button uk-button-secondary" onclick="shareOnTwitter()">Partager sur Twitter</button>
         <% } else { %>
-            <p>Le jeu est terminé. Appuyez sur Reset pour recommencer.</p>
-            <form action="/" method="post">
-                <button class="uk-input uk-button-danger uk-form-width-medium" type="submit" name="reset" value="true">Reset</button>
-            </form>
+            <p>Le jeu est terminé, revenez demain pour un nouveau mot !</p>
         <% } %>
 
         <% if (isGameOver) { %>

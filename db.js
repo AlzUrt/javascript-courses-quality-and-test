@@ -85,8 +85,10 @@ class DatabaseManager {
                                 else resolve(newWord);
                             });
                         } else {
-                            // Si pas de mots dans la base, utiliser un mot par défaut
-                            const defaultWord = "hangman";
+                            // Si pas de mots dans la base, piocher un mot aléatoire dans la liste words_fr.txt
+                            const fs = require('fs');
+                            const words = fs.readFileSync('words_fr.txt', 'utf8').split('\n');
+                            const defaultWord = words[Math.floor(Math.random() * words.length)].trim().toLowerCase();
                             this.db.run("INSERT INTO word_of_the_day (word, date) VALUES (?, ?)", [defaultWord, today], (err) => {
                                 if (err) reject(err);
                                 else resolve(defaultWord);
