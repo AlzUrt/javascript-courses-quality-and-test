@@ -25,6 +25,7 @@ This project uses Jest for testing. To run the tests, use the following command:
 
 ```bash
 npm test
+npm run test:e2e
 ```
 
 The tests are designed to ensure that the game logic works correctly and to demonstrate best practices in test-driven development.
