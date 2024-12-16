@@ -1,7 +1,8 @@
 # 🎮 Jeu du Pendu - Daily Word Game
 
 ![Node.js Version][nodejs-shield]
-![Tests Status][tests-shield]
+[![GitHub Actions][github-actions-shield]][github-actions-url]
+[![Jest Coverage][jest-coverage-shield]][jest-coverage-url]
 [![MIT License][license-shield]][license-url]
 
 ## 🎯 À propos du projet
@@ -107,7 +108,7 @@ Distribué sous la licence MIT. Voir `LICENSE` pour plus d'informations.
 
 ## 📫 Contact
 
-AlzUrt* : [@AlzUrt*](https://x.com/AlzUrt_)
+AlzUrt_ : [@AlzUrt_](https://x.com/AlzUrt_)
 
 Lien du projet: [https://github.com/AlzUrt/javascript-courses-quality-and-test](https://github.com/AlzUrt/javascript-courses-quality-and-test)
 
