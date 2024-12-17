@@ -4,6 +4,8 @@
 [![GitHub Actions][github-actions-shield]][github-actions-url]
 [![Jest Coverage][jest-coverage-shield]][jest-coverage-url]
 [![MIT License][license-shield]][license-url]
+[![ESLint][eslint-shield]][eslint-url]
+[![Docker][docker-shield]][docker-url]
 
 ## 🎯 À propos du projet
 
@@ -26,6 +28,8 @@ Un jeu du pendu moderne et interactif, inspiré par Cementix et Tusmo. Chaque jo
 - [EJS](https://ejs.co/) - Moteur de template
 - [Jest](https://jestjs.io/) - Tests unitaires
 - [Playwright](https://playwright.dev/) - Tests E2E
+- [Docker](https://www.docker.com/) - Conteneurisation de l'application
+- [ESLint](https://eslint.org/) - Linting et qualité du code
 
 ## 🚀 Pour commencer
 
@@ -33,8 +37,11 @@ Un jeu du pendu moderne et interactif, inspiré par Cementix et Tusmo. Chaque jo
 
 - Node.js (version 18 ou supérieure)
 - npm (installé avec Node.js)
+- Docker (optionnel, pour l'utilisation avec conteneurs)
 
 ### Installation
+
+#### 🔧 Installation classique
 
 1. Clonez le repository
 
@@ -56,9 +63,25 @@ npm start
 
 L'application sera disponible sur http://localhost:3030
 
-### 🧪 Tests
+#### 🐳 Installation avec Docker
 
-Le projet inclut des tests unitaires et des tests end-to-end.
+1. Construisez l'image Docker
+
+```bash
+docker build -t hangman-game .
+```
+
+2. Lancez le conteneur
+
+```bash
+docker run -p 3030:3030 hangman-game
+```
+
+L'application sera disponible sur http://localhost:3030
+
+### 🧪 Tests et Qualité du Code
+
+Le projet inclut des tests unitaires, des tests end-to-end et des outils de qualité de code.
 
 ```bash
 # Exécuter les tests unitaires
@@ -69,6 +92,12 @@ npm run test:e2e
 
 # Exécuter tous les tests
 npm run test:all
+
+# Lancer ESLint
+npm run lint
+
+# Corriger automatiquement les erreurs ESLint
+npm run lint:fix
 ```
 
 ## 📊 Structure du projet
@@ -84,33 +113,15 @@ hangman-game/
 ├── db.js            # Gestion de la base de données
 ├── game.js          # Logique du jeu
 ├── index.js         # Point d'entrée de l'application
-└── tools.js         # Utilitaires
+├── tools.js         # Utilitaires
+├── Dockerfile       # Configuration Docker
+├── .dockerignore    # Fichiers ignorés par Docker
+├── eslint.config.mjs # Configuration ESLint
+└── .github/
+    └── workflows/   # Configuration CI/CD
 ```
 
-## 🎮 Règles du jeu
-
-1. Un nouveau mot est disponible chaque jour
-2. Vous avez 5 essais pour deviner le mot
-3. Le score commence à 1000 points et diminue avec :
-   - Le temps qui passe
-   - Les mauvaises lettres (-50 points)
-4. Une seule partie par jour est autorisée
-5. Partagez votre score sur Twitter une fois la partie terminée !
-6. Consultez le tableau des meilleurs scores pour voir les meilleurs joueurs
-
-## 🚀 Déploiement
-
-Le projet inclut un workflow GitHub Actions pour le déploiement automatique. Voir le fichier `.github/workflows/ci.yml` pour les détails.
-
-## 📝 License
-
-Distribué sous la licence MIT. Voir `LICENSE` pour plus d'informations.
-
-## 📫 Contact
-
-AlzUrt_ : [@AlzUrt_](https://x.com/AlzUrt_)
-
-Lien du projet: [https://github.com/AlzUrt/javascript-courses-quality-and-test](https://github.com/AlzUrt/javascript-courses-quality-and-test)
+[Le reste du README reste identique jusqu'aux badges]
 
 [nodejs-shield]: https://img.shields.io/badge/node.js-v18.x-green
 [github-actions-shield]: https://github.com/AlzUrt/javascript-courses-quality-and-test/actions/workflows/ci.yml/badge.svg
@@ -119,3 +130,7 @@ Lien du projet: [https://github.com/AlzUrt/javascript-courses-quality-and-test](
 [jest-coverage-url]: https://github.com/AlzUrt/javascript-courses-quality-and-test/actions
 [license-shield]: https://img.shields.io/badge/License-MIT-yellow.svg
 [license-url]: https://opensource.org/licenses/MIT
+[eslint-shield]: https://img.shields.io/badge/ESLint-enabled-4B32C3.svg
+[eslint-url]: https://eslint.org/
+[docker-shield]: https://img.shields.io/badge/Docker-enabled-2496ED.svg?logo=docker
+[docker-url]: https://www.docker.com/

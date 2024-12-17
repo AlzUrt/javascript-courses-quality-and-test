@@ -1,0 +1,11 @@
+node_modules
+npm-debug.log
+coverage
+playwright-report
+test
+.git
+.gitignore
+README.md
+*.test.js
+.env
+hangman.db

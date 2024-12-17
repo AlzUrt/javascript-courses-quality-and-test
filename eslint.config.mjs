@@ -8,7 +8,6 @@ export default [
       "coverage/**",
       "playwright-report/**",
       "node_modules/**",
-      "dist/**",
     ],
   },
   {
