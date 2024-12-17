@@ -256,7 +256,6 @@ describe("Game test", () => {
 
   describe("Score and time tests", () => {
     test("score should decrease over long periods of time", () => {
-      const initialScore = game.getScore();
       jest.advanceTimersByTime(1001000); // Advance by more than 1000 seconds
       expect(game.getScore()).toBe(0);
     });
